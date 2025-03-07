@@ -1,6 +1,7 @@
 import expressAsyncHandler from "express-async-handler"
 import userRegisterconnection from "../config/userRegisterdb.js";
 import constants from "../constants.js"
+import jwt from "jsonwebtoken"
 
 // const bcrypt = require('bcryptjs')
 import bcrypt from 'bcryptjs';
@@ -18,11 +19,11 @@ const registerUser = expressAsyncHandler(async (req, res, next) => {
 
     // SQL query to check if the email already exists
     const sqlCheck = "SELECT * FROM users WHERE email = ?";
-    console.log("sqlCheck:", sqlCheck);
+    // console.log("sqlCheck:", sqlCheck);
 
     // Check if the email exists in the database
     const [results] = await userRegisterconnection.promise().query(sqlCheck, [email]);
-    console.log("results",results)
+    // console.log("results",results)
 
     // If email already exists, return an error
     if (results.length > 0) {
@@ -32,7 +33,7 @@ const registerUser = expressAsyncHandler(async (req, res, next) => {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("hashedPassword:", hashedPassword);
+    // console.log("hashedPassword:", hashedPassword);
 
     // SQL query to insert the new user into the database
     const registerQuery = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
@@ -46,12 +47,45 @@ const registerUser = expressAsyncHandler(async (req, res, next) => {
 
 
 const loginUser =expressAsyncHandler (async(req,res)=>{
-    res.json({message: "Login the User"})
+    const { email, password } = req.body;
+
+    if(!email || !password){
+        res.status(400)
+        throw new Error ("All fields are mandatory")
+    }
+
+    // Find the user by email
+    const query = 'SELECT * FROM users WHERE email = ?';
+    userRegisterconnection.query(query, [email], async (err, results) => {
+        // console.log("users results" , results)
+        if (err) throw err;
+
+        if (results.length > 0) {
+            const user = results[0];
+
+            // Compare the hashed password
+            const isMatch = await bcrypt.compare(password, user.password);
+             
+            const useremail = {email:user.email}
+            // console.log("useremail =", useremail)
+            
+            const accessToken= jwt.sign(useremail,"abdulsecretkey",{expiresIn:'1h'})
+
+            if (isMatch) {
+                res.status(200).json({token:accessToken});
+            } else {
+                res.status(401).send('Invalid credentials');
+            }
+        } else {
+            res.status(404).send('User not found');
+        }
+    });
 })
 
 const currentUser =expressAsyncHandler (async(req,res)=>{
-    console.log("triggered")
-    res.json({message: "Current user Information"})
+    const [rows] = await userRegisterconnection.promise().query("SELECT * FROM users");
+    // console.log("users:", rows);
+    res.status(200).json(rows);
 })
 
 export  {registerUser,loginUser,currentUser}
