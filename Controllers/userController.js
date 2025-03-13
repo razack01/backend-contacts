@@ -62,14 +62,18 @@ const loginUser =expressAsyncHandler (async(req,res)=>{
 
         if (results.length > 0) {
             const user = results[0];
+            // console.log(user)
 
             // Compare the hashed password
             const isMatch = await bcrypt.compare(password, user.password);
              
-            const useremail = {email:user.email}
+            const userdetails = {username:user.name,
+                userID: user.userid,
+                email:user.email}
             // console.log("useremail =", useremail)
+          console.log(" userdetails", userdetails)
             
-            const accessToken= jwt.sign(useremail,"abdulsecretkey",{expiresIn:'1h'})
+            const accessToken= jwt.sign(userdetails,"abdulsecretkey",{expiresIn:'1h'})
 
             if (isMatch) {
                 res.status(200).json({token:accessToken});
@@ -82,10 +86,12 @@ const loginUser =expressAsyncHandler (async(req,res)=>{
     });
 })
 
-const currentUser =expressAsyncHandler (async(req,res)=>{
-    const [rows] = await userRegisterconnection.promise().query("SELECT * FROM users");
+const currentUser =(req,res)=>{
+
+    console.log("req.yser",req.user)
+    // const [rows] = await userRegisterconnection.promise().query("SELECT * FROM users");
     // console.log("users:", rows);
-    res.status(200).json(rows);
-})
+    res.json(req.user);
+}
 
 export  {registerUser,loginUser,currentUser}

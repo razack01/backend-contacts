@@ -3,8 +3,7 @@ import expressAsyncHandler from "express-async-handler"
 import jwt from "jsonwebtoken"
 
 
-const validateToken = async (req, res, next) => {
-    // console.log("rquest",req)
+const validateToken = expressAsyncHandler(async (req, res, next) => {
     console.log("Token function called");
 
     let token;
@@ -15,10 +14,14 @@ const validateToken = async (req, res, next) => {
 
         try {
             const decoded = jwt.verify(token, "abdulsecretkey");
-            req.user = decoded.user; // Attach user to request object
             console.log("Decoded Token:", decoded);
-            
-            next();
+
+            req.user = {
+                userID: decoded.userID,
+                username: decoded.username,
+                email: decoded.email
+            }; //  Attach user data to req
+            next(); // Pass to the next middleware
         } catch (err) {
             console.error("JWT Verification Error:", err.message);
             res.status(401);
@@ -28,5 +31,5 @@ const validateToken = async (req, res, next) => {
         res.status(401);
         throw new Error("User is not authorized - No Token");
     }
-};
+});
 export {validateToken}
